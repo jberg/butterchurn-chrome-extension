@@ -29,16 +29,6 @@
     "tabs",
     "tabCapture",
     "activeTab",
-    "*://*/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": [
-        "*://*/*"
-      ],
-      "js": [
-        "src/inject/inject.js"
-      ]
-    }
+    "<all_urls>"
   ]
 }
