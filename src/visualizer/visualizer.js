@@ -16,6 +16,15 @@ var readyStateCheckInterval = setInterval(() => {
     const presetIndexHist = [];
     let nextPreset, prevPreset, restartCycleInterval, cycleInterval;
 
+    const setVisualizerSize = () => {
+      const vizWidth = window.innerWidth;
+      const vizHeight = window.innerHeight - 3;
+
+      canvas.width = vizWidth;
+      canvas.height = vizHeight;
+      visualizer.setRendererSize(vizWidth, vizHeight);
+    };
+
     nextPreset = (blendTime) => {
       const presetIdx = presets[presetKeys[Math.floor(presetKeys.length * Math.random())]];
       presetIndexHist.push(presetIdx);
@@ -51,6 +60,7 @@ var readyStateCheckInterval = setInterval(() => {
       }, 15000);
     };
 
+    setVisualizerSize();
     nextPreset(0);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -66,6 +76,10 @@ var readyStateCheckInterval = setInterval(() => {
       } else if (e.which === 72) { // H
         nextPreset(0);
       }
+    });
+
+    window.addEventListener('resize', () => {
+      setVisualizerSize();
     });
 	}
 }, 10);
