@@ -1,4 +1,5 @@
 const renderWindows = {};
+const renderToTabId = {};
 
 chrome.browserAction.onClicked.addListener((tab) => {
   if(!renderWindows[tab.id]) {
@@ -40,18 +41,9 @@ chrome.browserAction.onClicked.addListener((tab) => {
         splitter.connect(analyserL, 0);
         splitter.connect(analyserR, 1);
 
-        renderWindows[tab.id] = {
-          id: renderTab.id,
-          audioContext: audioContext,
-          audioSource: source,
-          analyser: analyser,
-          analyserL: analyserL,
-          analyserR: analyserR
-        };
-
         const startTime = +Date.now();
 
-        setInterval(() => {
+        const intervalId = setInterval(() => {
           const timeByteArray = new Uint8Array(1024);
           const timeByteArrayL = new Uint8Array(1024);
           const timeByteArrayR = new Uint8Array(1024);
@@ -71,6 +63,17 @@ chrome.browserAction.onClicked.addListener((tab) => {
 
           chrome.tabs.sendMessage(renderTab.id, renderOpts);
         }, (1000 / 60));
+
+        renderWindows[tab.id] = {
+          id: renderTab.id,
+          intervalId: intervalId,
+          audioContext: audioContext,
+          audioSource: source,
+          analyser: analyser,
+          analyserL: analyserL,
+          analyserR: analyserR
+        };
+        renderToTabId[renderTab.id] = tab.id;
       });
     });
   }
