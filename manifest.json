@@ -11,7 +11,7 @@
   },
   "background": {
     "scripts": [
-      "src/bg/background.js"
+      "src/background.js"
     ],
     "persistent": true
   },
