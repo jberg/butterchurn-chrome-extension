@@ -11,6 +11,10 @@ var readyStateCheckInterval = setInterval(() => {
       pixelRatio: window.devicePixelRatio || 1,
       textureRatio: 1
     });
+    const presets = butterchurnPresets.getPresets();
+    const presetKeys = Object.keys(presets);
+
+    visualizer.loadPreset(presets[presetKeys[Math.floor(presetKeys.length * Math.random())]], 0);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       visualizer.render(request);
