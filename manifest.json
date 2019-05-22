@@ -15,7 +15,6 @@
     ],
     "persistent": true
   },
-  "options_page": "src/options/index.html",
   "browser_action": {
     "default_icon": {
       "16": "icons/icon16.png",
