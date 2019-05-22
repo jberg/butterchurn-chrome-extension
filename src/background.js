@@ -41,7 +41,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
         splitter.connect(analyserL, 0);
         splitter.connect(analyserR, 1);
 
-        const startTime = +Date.now();
+        let lastTime = +Date.now();
 
         const intervalId = setInterval(() => {
           const timeByteArray = new Uint8Array(1024);
@@ -52,8 +52,12 @@ chrome.browserAction.onClicked.addListener((tab) => {
           analyserL.getByteTimeDomainData(timeByteArrayL);
           analyserR.getByteTimeDomainData(timeByteArrayR);
 
+          const currentTime = +Date.now();
+          const elapsedTime = (currentTime - lastTime) / 1000;
+          lastTime = currentTime;
+
           const renderOpts = {
-            elapsedTime: (+Date.now() - startTime) / 1000,
+            elapsedTime: elapsedTime,
             audioLevels: {
               timeByteArray: Array.from(timeByteArray),
               timeByteArrayL: Array.from(timeByteArrayL),
