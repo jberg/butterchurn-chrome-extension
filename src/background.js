@@ -2,7 +2,9 @@ const renderWindows = {};
 const renderToTabId = {};
 
 chrome.browserAction.onClicked.addListener((tab) => {
-  if(!renderWindows[tab.id]) {
+  if(renderWindows[tab.id]) {
+    chrome.windows.update(renderWindows[tab.id].windowId, { focused: true });
+  } else {
     chrome.tabCapture.capture({ audio: true }, (stream) => {
       const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
@@ -20,65 +22,66 @@ chrome.browserAction.onClicked.addListener((tab) => {
           focused: true,
           width: 800,
           height: 600
-        });
+        }, (window) => {
+          const analyser = audioContext.createAnalyser();
+          analyser.smoothingTimeConstant = 0.0;
+          analyser.fftSize = 1024;
 
-        const analyser = audioContext.createAnalyser();
-        analyser.smoothingTimeConstant = 0.0;
-        analyser.fftSize = 1024;
+          const analyserL = audioContext.createAnalyser();
+          analyserL.smoothingTimeConstant = 0.0;
+          analyserL.fftSize = 1024;
 
-        const analyserL = audioContext.createAnalyser();
-        analyserL.smoothingTimeConstant = 0.0;
-        analyserL.fftSize = 1024;
+          const analyserR = audioContext.createAnalyser();
+          analyserR.smoothingTimeConstant = 0.0;
+          analyserR.fftSize = 1024;
 
-        const analyserR = audioContext.createAnalyser();
-        analyserR.smoothingTimeConstant = 0.0;
-        analyserR.fftSize = 1024;
+          const splitter = audioContext.createChannelSplitter(2);
 
-        const splitter = audioContext.createChannelSplitter(2);
+          source.connect(analyser);
+          source.connect(splitter);
+          splitter.connect(analyserL, 0);
+          splitter.connect(analyserR, 1);
 
-        source.connect(analyser);
-        source.connect(splitter);
-        splitter.connect(analyserL, 0);
-        splitter.connect(analyserR, 1);
+          let lastTime = +Date.now();
 
-        let lastTime = +Date.now();
+          const intervalId = setInterval(() => {
+            const timeByteArray = new Uint8Array(1024);
+            const timeByteArrayL = new Uint8Array(1024);
+            const timeByteArrayR = new Uint8Array(1024);
 
-        const intervalId = setInterval(() => {
-          const timeByteArray = new Uint8Array(1024);
-          const timeByteArrayL = new Uint8Array(1024);
-          const timeByteArrayR = new Uint8Array(1024);
+            analyser.getByteTimeDomainData(timeByteArray);
+            analyserL.getByteTimeDomainData(timeByteArrayL);
+            analyserR.getByteTimeDomainData(timeByteArrayR);
 
-          analyser.getByteTimeDomainData(timeByteArray);
-          analyserL.getByteTimeDomainData(timeByteArrayL);
-          analyserR.getByteTimeDomainData(timeByteArrayR);
+            const currentTime = +Date.now();
+            const elapsedTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
 
-          const currentTime = +Date.now();
-          const elapsedTime = (currentTime - lastTime) / 1000;
-          lastTime = currentTime;
+            const renderOpts = {
+              elapsedTime: elapsedTime,
+              audioLevels: {
+                timeByteArray: Array.from(timeByteArray),
+                timeByteArrayL: Array.from(timeByteArrayL),
+                timeByteArrayR: Array.from(timeByteArrayR)
+              }
+            };
 
-          const renderOpts = {
-            elapsedTime: elapsedTime,
-            audioLevels: {
-              timeByteArray: Array.from(timeByteArray),
-              timeByteArrayL: Array.from(timeByteArrayL),
-              timeByteArrayR: Array.from(timeByteArrayR)
-            }
+            chrome.tabs.sendMessage(renderTab.id, renderOpts);
+          }, (1000 / 60));
+
+          renderWindows[tab.id] = {
+            id: renderTab.id,
+            windowId: window.id,
+            intervalId: intervalId,
+            stream: stream,
+            audioContext: audioContext,
+            audioSource: source,
+            analyser: analyser,
+            analyserL: analyserL,
+            analyserR: analyserR
           };
-
-          chrome.tabs.sendMessage(renderTab.id, renderOpts);
-        }, (1000 / 60));
-
-        renderWindows[tab.id] = {
-          id: renderTab.id,
-          intervalId: intervalId,
-          stream: stream,
-          audioContext: audioContext,
-          audioSource: source,
-          analyser: analyser,
-          analyserL: analyserL,
-          analyserR: analyserR
-        };
-        renderToTabId[renderTab.id] = tab.id;
+          renderToTabId[renderTab.id] = tab.id;
+        });
       });
     });
   }
