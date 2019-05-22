@@ -13,12 +13,59 @@ var readyStateCheckInterval = setInterval(() => {
     });
     const presets = butterchurnPresets.getPresets();
     const presetKeys = Object.keys(presets);
+    const presetIndexHist = [];
+    let nextPreset, prevPreset, restartCycleInterval, cycleInterval;
 
-    visualizer.loadPreset(presets[presetKeys[Math.floor(presetKeys.length * Math.random())]], 0);
+    nextPreset = (blendTime) => {
+      const presetIdx = presets[presetKeys[Math.floor(presetKeys.length * Math.random())]];
+      presetIndexHist.push(presetIdx);
+      visualizer.loadPreset(presetIdx, blendTime);
+      restartCycleInterval();
+    };
+
+    prevPreset = (blendTime) => {
+      let presetIdx;
+      if (presetIndexHist.length > 0) {
+        presetIndexHist.pop();
+
+        if (presetIndexHist.length > 0) {
+          presetIdx = presetIndexHist[presetIndexHist.length - 1];
+        } else {
+          presetIdx = presets[presetKeys[Math.floor(presetKeys.length * Math.random())]];
+        }
+      } else {
+        presetIdx = presets[presetKeys[Math.floor(presetKeys.length * Math.random())]];
+      }
+
+      visualizer.loadPreset(presetIdx, blendTime);
+      restartCycleInterval();
+    };
+
+    restartCycleInterval = () => {
+      if (cycleInterval) {
+        clearInterval(cycleInterval);
+      }
+
+      cycleInterval = setInterval(() => {
+        nextPreset(2.7);
+      }, 15000);
+    };
+
+    nextPreset(0);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       visualizer.render(request);
       sendResponse();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.which === 32 || e.which === 39) { // SPACE or ->
+        nextPreset(5.7);
+      } else if (e.which === 8 || e.which === 37) { // BACKSPACE or <-
+        prevPreset(0);
+      } else if (e.which === 72) { // H
+        nextPreset(0);
+      }
     });
 	}
 }, 10);
