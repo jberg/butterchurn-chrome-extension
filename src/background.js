@@ -71,6 +71,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
         renderWindows[tab.id] = {
           id: renderTab.id,
           intervalId: intervalId,
+          stream: stream,
           audioContext: audioContext,
           audioSource: source,
           analyser: analyser,
@@ -80,5 +81,31 @@ chrome.browserAction.onClicked.addListener((tab) => {
         renderToTabId[renderTab.id] = tab.id;
       });
     });
+  }
+});
+
+function cleanupRenderWindow (renderWindow) {
+  clearInterval(renderWindow.intervalId);
+  renderWindow.stream.getTracks().forEach((track) => {
+    track.stop();
+  });
+  renderWindow.audioContext.close()
+}
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (renderWindows[tabId]) {
+    const renderWindow = renderWindows[tabId];
+
+    cleanupRenderWindow(renderWindow);
+    chrome.tabs.remove(renderWindow.id);
+    renderWindows[tabId] = null;
+    renderToTabId[renderWindow.id] = null;
+  } else if(renderToTabId[tabId]) {
+    const audioTabId = renderToTabId[tabId];
+    const renderWindow = renderWindows[audioTabId];
+
+    cleanupRenderWindow(renderWindow);
+    renderWindows[audioTabId] = null;
+    renderToTabId[tabId] = null;
   }
 });
