@@ -17,8 +17,8 @@ chrome.browserAction.onClicked.addListener((tab) => {
           tabId: renderTab.id,
           type: 'popup',
           focused: true,
-          width: 815,
-          height: 603
+          width: 800,
+          height: 625
         });
 
         const analyser = audioContext.createAnalyser();
