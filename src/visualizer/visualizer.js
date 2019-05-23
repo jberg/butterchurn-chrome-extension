@@ -18,7 +18,7 @@ var readyStateCheckInterval = setInterval(() => {
 
     const setVisualizerSize = () => {
       const vizWidth = window.innerWidth;
-      const vizHeight = window.innerHeight - 3;
+      const vizHeight = window.innerHeight;
 
       canvas.width = vizWidth;
       canvas.height = vizHeight;
