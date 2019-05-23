@@ -30,7 +30,6 @@
   "permissions": [
     "tabs",
     "tabCapture",
-    "activeTab",
     "<all_urls>"
   ],
   "content_security_policy": "script-src 'self' 'unsafe-eval'"
