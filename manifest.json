@@ -25,7 +25,7 @@
       "256": "icons/icon256.png",
       "512": "icons/icon512.png"
     },
-    "default_title": "Start Visualizer"
+    "default_title": "Butterchurn Visualizer"
   },
   "permissions": [
     "tabs",
