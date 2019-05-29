@@ -11,7 +11,12 @@ var readyStateCheckInterval = setInterval(() => {
       pixelRatio: window.devicePixelRatio || 1,
       textureRatio: 1
     });
-    const presets = butterchurnPresets.getPresets();
+    visualizer.loadExtraImages(butterchurnExtraImages.default.getImages());
+
+    const presets = Object.assign({},
+                                  butterchurnPresets.getPresets(),
+                                  butterchurnPresetsExtra.getPresets(),
+                                  butterchurnPresetsExtra2.getPresets());
     const presetKeys = Object.keys(presets);
     const presetIndexHist = [];
     let nextPreset, prevPreset, restartCycleInterval, cycleInterval;
