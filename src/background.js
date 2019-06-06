@@ -1,6 +1,65 @@
 const renderWindows = {};
 const renderToTabId = {};
 
+function startRenderInterval (renderTab) {
+  let lastTime = +Date.now();
+  const tabId = renderToTabId[renderTab.id];
+  const renderWindow = renderWindows[tabId];
+  const analyser = renderWindow.analyser;
+  const analyserL = renderWindow.analyserL;
+  const analyserR = renderWindow.analyserR;
+
+  const renderIntervalId = setInterval(() => {
+    const timeByteArray = new Uint8Array(1024);
+    const timeByteArrayL = new Uint8Array(1024);
+    const timeByteArrayR = new Uint8Array(1024);
+
+    analyser.getByteTimeDomainData(timeByteArray);
+    analyserL.getByteTimeDomainData(timeByteArrayL);
+    analyserR.getByteTimeDomainData(timeByteArrayR);
+
+    const currentTime = +Date.now();
+    const elapsedTime = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
+
+    const renderOpts = {
+      elapsedTime: elapsedTime,
+      audioLevels: {
+        timeByteArray: Array.from(timeByteArray),
+        timeByteArrayL: Array.from(timeByteArrayL),
+        timeByteArrayR: Array.from(timeByteArrayR)
+      }
+    };
+
+    chrome.tabs.sendMessage(renderTab.id, { type: 'audioData', data: renderOpts });
+  }, (1000 / 60));
+
+  return renderIntervalId;
+}
+
+function startAudioCheckInterval (renderTab) {
+  const tabId = renderToTabId[renderTab.id];
+  const renderWindow = renderWindows[tabId];
+
+  const audioCheckIntervalId = setInterval(() => {
+    chrome.tabs.get(tabId, (tab) => {
+      const wasAudible = renderWindow.audible;
+      if (tab.audible !== wasAudible) {
+        renderWindow.audible = tab.audible;
+        if (tab.audible) {
+          chrome.tabs.sendMessage(renderTab.id, { type: 'startRendering' });
+          renderWindow.renderIntervalId = startRenderInterval(renderTab);
+        } else {
+          clearInterval(renderWindow.renderIntervalId);
+          chrome.tabs.sendMessage(renderTab.id, { type: 'stopRendering' });
+        }
+      }
+    });
+  }, 1000);
+
+  return audioCheckIntervalId;
+}
+
 chrome.browserAction.onClicked.addListener((tab) => {
   if(renderWindows[tab.id]) {
     chrome.windows.update(renderWindows[tab.id].windowId, { focused: true });
@@ -42,37 +101,10 @@ chrome.browserAction.onClicked.addListener((tab) => {
           splitter.connect(analyserL, 0);
           splitter.connect(analyserR, 1);
 
-          let lastTime = +Date.now();
-
-          const intervalId = setInterval(() => {
-            const timeByteArray = new Uint8Array(1024);
-            const timeByteArrayL = new Uint8Array(1024);
-            const timeByteArrayR = new Uint8Array(1024);
-
-            analyser.getByteTimeDomainData(timeByteArray);
-            analyserL.getByteTimeDomainData(timeByteArrayL);
-            analyserR.getByteTimeDomainData(timeByteArrayR);
-
-            const currentTime = +Date.now();
-            const elapsedTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
-            const renderOpts = {
-              elapsedTime: elapsedTime,
-              audioLevels: {
-                timeByteArray: Array.from(timeByteArray),
-                timeByteArrayL: Array.from(timeByteArrayL),
-                timeByteArrayR: Array.from(timeByteArrayR)
-              }
-            };
-
-            chrome.tabs.sendMessage(renderTab.id, renderOpts);
-          }, (1000 / 60));
-
           renderWindows[tab.id] = {
             id: renderTab.id,
             windowId: window.id,
-            intervalId: intervalId,
+            audible: tab.audible,
             stream: stream,
             audioContext: audioContext,
             audioSource: source,
@@ -81,6 +113,13 @@ chrome.browserAction.onClicked.addListener((tab) => {
             analyserR: analyserR
           };
           renderToTabId[renderTab.id] = tab.id;
+
+          renderWindows[tab.id].audioCheckIntervalId = startAudioCheckInterval(renderTab);
+          if (tab.audible) {
+            renderWindows[tab.id].renderIntervalId = startRenderInterval(renderTab);
+          } else {
+            setTimeout(() => chrome.tabs.sendMessage(renderTab.id, { type: 'stopRendering' }), 1000);
+          }
         });
       });
     });
@@ -88,7 +127,8 @@ chrome.browserAction.onClicked.addListener((tab) => {
 });
 
 function cleanupRenderWindow (renderWindow) {
-  clearInterval(renderWindow.intervalId);
+  clearInterval(renderWindow.renderIntervalId);
+  clearInterval(renderWindow.audioCheckIntervalId);
   renderWindow.stream.getTracks().forEach((track) => {
     track.stop();
   });

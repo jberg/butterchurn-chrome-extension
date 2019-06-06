@@ -2,6 +2,7 @@ var readyStateCheckInterval = setInterval(() => {
 	if (document.readyState === "complete") {
     clearInterval(readyStateCheckInterval);
 
+    const noAudioOverlay = document.getElementById('noAudioOverlay');
     const canvas = document.getElementById('canvas');
     const visualizer = butterchurn.default.createVisualizer(null, canvas , {
       width: 800,
@@ -28,6 +29,9 @@ var readyStateCheckInterval = setInterval(() => {
       canvas.width = vizWidth;
       canvas.height = vizHeight;
       visualizer.setRendererSize(vizWidth, vizHeight);
+
+      noAudioOverlay.style.width = `${vizWidth}px`;
+      noAudioOverlay.style.height = `${vizHeight}px`;
     };
 
     nextPreset = (blendTime) => {
@@ -69,7 +73,14 @@ var readyStateCheckInterval = setInterval(() => {
     nextPreset(0);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      visualizer.render(request);
+      if (request.type === 'startRendering') {
+        noAudioOverlay.style.display = 'none';
+      } else if (request.type === 'stopRendering') {
+        noAudioOverlay.style.display = 'flex';
+      } else if (request.type === 'audioData') {
+        visualizer.render(request.data);
+      }
+
       sendResponse();
     });
 
