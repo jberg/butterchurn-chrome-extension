@@ -20,7 +20,8 @@ var readyStateCheckInterval = setInterval(() => {
                                   butterchurnPresetsExtra2.getPresets());
     const presetKeys = Object.keys(presets);
     const presetIndexHist = [];
-    let nextPreset, prevPreset, restartCycleInterval, cycleInterval;
+    let presetCycle = true;
+    let nextPreset, prevPreset, restartCycleInterval, cycleInterval, toggleRandomize;
 
     const setVisualizerSize = () => {
       const vizWidth = window.innerWidth;
@@ -62,11 +63,19 @@ var readyStateCheckInterval = setInterval(() => {
     restartCycleInterval = () => {
       if (cycleInterval) {
         clearInterval(cycleInterval);
+        cycleInterval = null;
       }
 
-      cycleInterval = setInterval(() => {
-        nextPreset(2.7);
-      }, 15000);
+      if (presetCycle) {
+        cycleInterval = setInterval(() => {
+          nextPreset(2.7);
+        }, 24000);
+      }
+    };
+
+    toggleRandomize = () => {
+      presetCycle = !presetCycle;
+      restartCycleInterval();
     };
 
     setVisualizerSize();
@@ -91,6 +100,8 @@ var readyStateCheckInterval = setInterval(() => {
         prevPreset(0);
       } else if (e.which === 72) { // H
         nextPreset(0);
+      } else if (e.which === 82) { // R
+        toggleRandomize();
       }
     });
 
